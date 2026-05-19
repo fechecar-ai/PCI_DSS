@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PCI DSS — Payment Card Industry Data Security Standard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #181c22;
+    --border: #1e242e;
+    --border-light: #2a3342;
+    --accent: #3b82f6;
+    --accent-dim: #1d4ed8;
+    --accent-glow: rgba(59,130,246,0.15);
+    --gold: #c9a84c;
+    --gold-dim: rgba(201,168,76,0.12);
+    --text: #e8ecf0;
+    --text-muted: #6b7a8d;
+    --text-dim: #3d4d5e;
+    --success: #22c55e;
+    --danger: #ef4444;
+  }
+ 
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  html { scroll-behavior: smooth; }
+ 
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    overflow-x: hidden;
+    cursor: none;
+  }
+ 
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1px solid rgba(59,130,246,0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease, width 0.3s, height 0.3s;
+  }
+  body:has(a:hover) #cursor,
+  body:has(button:hover) #cursor { width: 20px; height: 20px; background: var(--gold); }
+  body:has(a:hover) #cursor-ring,
+  body:has(button:hover) #cursor-ring { width: 52px; height: 52px; border-color: rgba(201,168,76,0.4); }
+ 
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+ 
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+ 
+  /* ─── HEADER ─────────────────────────────────────── */
+  header {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 18px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,12,15,0.85);
+    backdrop-filter: blur(20px);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  nav { display: flex; gap: 32px; }
+  nav a {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    position: relative;
+  }
+  nav a::after {
+    content: '';
+    position: absolute; bottom: -4px; left: 0; right: 0;
+    height: 1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.25s;
+  }
+  nav a:hover { color: var(--text); }
+  nav a:hover::after { transform: scaleX(1); }
+ 
+  /* ─── HERO ───────────────────────────────────────── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: flex-end;
+    padding: 0 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.35;
+    animation: grid-drift 20s linear infinite;
+  }
+  @keyframes grid-drift {
+    from { background-position: 0 0; }
+    to   { background-position: 60px 60px; }
+  }
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    animation: pulse-glow 6s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.5; transform: translate(-50%,-50%) scale(1); }
+    50%       { opacity: 1;   transform: translate(-50%,-50%) scale(1.15); }
+  }
+  .hero-tag {
+    font-size: 11px; letter-spacing: 0.3em;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 12px;
+    animation: fade-up 0.8s 0.2s both;
+  }
+  .hero-tag::before {
+    content: '';
+    display: inline-block; width: 32px; height: 1px;
+    background: var(--accent);
+  }
+  .hero-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(52px, 7vw, 100px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    position: relative;
+    animation: fade-up 0.8s 0.4s both;
+  }
+  .hero-title span { color: var(--accent); font-style: italic; }
+  .hero-sub {
+    margin-top: 32px;
+    font-size: 13px;
+    color: var(--text-muted);
+    max-width: 480px;
+    line-height: 1.8;
+    animation: fade-up 0.8s 0.6s both;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 40px;
+    padding: 10px 20px;
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold);
+    background: var(--gold-dim);
+    animation: fade-up 0.8s 0.8s both;
+  }
+  .hero-badge::before { content: '■'; font-size: 8px; }
+  .hero-scroll {
+    position: absolute; right: 48px; bottom: 80px;
+    writing-mode: vertical-rl;
+    font-size: 10px; letter-spacing: 0.3em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 16px;
+    animation: fade-up 0.8s 1s both;
+  }
+  .hero-scroll::after {
+    content: '';
+    width: 1px; height: 60px;
+    background: linear-gradient(var(--text-dim), transparent);
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+ 
+  /* ─── MAIN CONTENT ───────────────────────────────── */
+  main { padding: 0 48px 120px; }
+ 
+  /* ─── SECTION WRAPPER ───────────────────────────── */
+  .section {
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .section:hover { border-color: var(--border-light); }
+  .section.open   { border-color: var(--accent); }
+ 
+  .section-header {
+    display: flex; align-items: center; gap: 20px;
+    padding: 28px 32px;
+    cursor: pointer;
+    background: var(--surface);
+    transition: background 0.2s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .section-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--accent-glow);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .section.open .section-header::before,
+  .section-header:hover::before { opacity: 1; }
+ 
+  .section-num {
+    font-size: 10px; letter-spacing: 0.2em;
+    color: var(--text-dim); min-width: 28px;
+    font-family: 'DM Mono', monospace;
+  }
+  .section-icon {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: border-color 0.3s, background 0.3s;
+    flex-shrink: 0;
+  }
+  .section.open .section-icon { border-color: var(--accent); background: var(--accent-glow); }
+ 
+  .section-title {
+    flex: 1;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .section-arrow {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    font-size: 18px;
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), color 0.2s;
+  }
+  .section.open .section-arrow { transform: rotate(90deg); color: var(--accent); }
+ 
+  .section-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1);
+    background: var(--surface2);
+  }
+  .section.open .section-body { max-height: 2000px; }
+  .section-inner { padding: 36px 32px 40px; }
+ 
+  /* ─── CONTENT STYLES ─────────────────────────────── */
+  .lead {
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.8;
+    margin-bottom: 28px;
+    border-left: 2px solid var(--accent);
+    padding-left: 20px;
+  }
+  p { color: var(--text-muted); margin-bottom: 16px; }
+  p:last-child { margin-bottom: 0; }
+ 
+  /* Info cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 24px 20px;
+    background: var(--surface);
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+  .card-icon { font-size: 22px; margin-bottom: 12px; }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .card-text { font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+ 
+  /* Requirements list */
+  .req-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+  .req-item {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface);
+    transition: border-color 0.2s, background 0.2s;
+    cursor: default;
+  }
+  .req-item:hover { border-color: var(--border-light); background: rgba(59,130,246,0.04); }
+  .req-num {
+    font-size: 10px; font-weight: 500;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    padding: 2px 8px;
+    flex-shrink: 0; margin-top: 2px;
+    letter-spacing: 0.1em;
+  }
+  .req-text { font-size: 13px; color: var(--text-muted); }
+  .req-text strong { color: var(--text); font-weight: 500; display: block; margin-bottom: 4px; }
+ 
+  /* Advantages */
+  .adv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+  .adv-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface);
+    transition: all 0.25s;
+  }
+  .adv-item:hover { border-color: var(--gold); background: var(--gold-dim); }
+  .adv-check {
+    width: 20px; height: 20px;
+    border: 1px solid var(--success);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--success); font-size: 12px; flex-shrink: 0; margin-top: 2px;
+  }
+  .adv-label { font-size: 13px; color: var(--text-muted); }
+  .adv-label strong { color: var(--text); display: block; margin-bottom: 4px; font-weight: 500; }
+ 
+  /* Timeline */
+  .timeline { position: relative; margin-top: 24px; padding-left: 28px; }
+  .timeline::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 1px; background: linear-gradient(var(--accent), var(--border), transparent);
+  }
+  .tl-item { position: relative; margin-bottom: 28px; }
+  .tl-item::before {
+    content: '';
+    position: absolute; left: -32px; top: 6px;
+    width: 8px; height: 8px;
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+  }
+  .tl-date { font-size: 10px; color: var(--accent); letter-spacing: 0.2em; margin-bottom: 6px; text-transform: uppercase; }
+  .tl-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .tl-text { font-size: 12px; color: var(--text-muted); }
+ 
+  /* Tools */
+  .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 20px; }
+  .tool-card {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 22px;
+    background: var(--surface);
+    transition: all 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .tool-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .tool-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .tool-card:hover::after { transform: scaleX(1); }
+  .tool-name {
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--text); margin-bottom: 4px;
+  }
+  .tool-category {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  .tool-desc { font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+ 
+  /* Case study */
+  .case-box {
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 20px;
+  }
+  .case-header {
+    padding: 18px 24px;
+    background: rgba(59,130,246,0.06);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .case-badge {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--danger); border: 1px solid var(--danger);
+    padding: 3px 10px; border-radius: 2px;
+  }
+  .case-company { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+  .case-body { padding: 28px 24px; }
+  .case-stat-row { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+  .case-stat {
+    flex: 1; min-width: 120px;
+    padding: 16px; border: 1px solid var(--border); border-radius: 3px;
+    background: var(--surface); text-align: center;
+  }
+  .case-stat-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px; color: var(--danger); display: block; margin-bottom: 4px;
+  }
+  .case-stat-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); }
+ 
+  /* Scope interactive toggle */
+  .scope-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .scope-tab {
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted);
+    background: transparent; cursor: pointer;
+    transition: all 0.2s; font-family: 'DM Mono', monospace;
+  }
+  .scope-tab.active,
+  .scope-tab:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+  .scope-panel { display: none; }
+  .scope-panel.active { display: block; }
+ 
+  /* ─── FOOTER ─────────────────────────────────────── */
+  footer {
+    padding: 40px 48px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--text-dim); font-size: 11px; letter-spacing: 0.12em;
+  }
+  .footer-logo { color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 800; letter-spacing: 0.3em; font-size: 12px; }
+ 
+  /* ─── COUNTER ANIMATION ──────────────────────────── */
+  @keyframes count-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animated { animation: fade-up 0.5s both; }
+  .animated:nth-child(1) { animation-delay: 0.0s; }
+  .animated:nth-child(2) { animation-delay: 0.07s; }
+  .animated:nth-child(3) { animation-delay: 0.14s; }
+  .animated:nth-child(4) { animation-delay: 0.21s; }
+  .animated:nth-child(5) { animation-delay: 0.28s; }
+  .animated:nth-child(6) { animation-delay: 0.35s; }
+  .animated:nth-child(7) { animation-delay: 0.42s; }
+  .animated:nth-child(8) { animation-delay: 0.49s; }
+  .animated:nth-child(9) { animation-delay: 0.56s; }
+  .animated:nth-child(10){ animation-delay: 0.63s; }
+  .animated:nth-child(11){ animation-delay: 0.70s; }
+  .animated:nth-child(12){ animation-delay: 0.77s; }
+ 
+  @media (max-width: 768px) {
+    header { padding: 16px 20px; }
+    nav { display: none; }
+    .hero { padding: 0 20px 60px; }
+    main { padding: 0 20px 80px; }
+    .adv-grid { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+    body { cursor: auto; }
+    #cursor, #cursor-ring { display: none; }
+  }
+</style>
+</head>
+<body>
+ 
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+ 
+<!-- HEADER -->
+<header>
+  <div class="logo">PCI DSS</div>
+  <nav>
+    <a href="#definition">Definition</a>
+    <a href="#objective">Objective</a>
+    <a href="#scope">Scope</a>
+    <a href="#advantages">Advantages</a>
+    <a href="#example">Example</a>
+    <a href="#tools">Tools</a>
+  </nav>
+</header>
+ 
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+ 
+  <div class="hero-tag">Security Standard</div>
+ 
+  <h1 class="hero-title">
+    Payment Card<br/>
+    Industry <span>DSS</span>
+  </h1>
+ 
+  <p class="hero-sub">
+    A comprehensive set of security requirements designed to ensure
+    that all companies processing, storing, or transmitting credit card
+    information maintain a secure environment.
+  </p>
+ 
+  <div class="hero-badge">PCI DSS v4.0 — Current Standard</div>
+ 
+  <div class="hero-scroll">Scroll to explore</div>
+</section>
+ 
+<!-- MAIN -->
+<main>
+ 
+  <!-- 01. DEFINITION -->
+  <div class="section" id="definition">
+    <div class="section-header" onclick="toggle(this)">
+      <span class="section-num">01</span>
+      <div class="section-icon">📘</div>
+      <div class="section-title">Definition</div>
+      <div class="section-arrow">›</div>
+    </div>
+    <div class="section-body">
+      <div class="section-inner">
+        <p class="lead">
+          PCI DSS stands for <strong>Payment Card Industry Data Security Standard</strong> — a global framework
+          established in 2004 by the major card networks to protect cardholder data.
+        </p>
+        <p>
+          The standard was developed and is maintained by the <strong>PCI Security Standards Council (PCI SSC)</strong>,
+          founded jointly by American Express, Discover, JCB International, MasterCard, and Visa Inc.
+          Its primary purpose is to reduce payment card fraud and protect consumers' sensitive financial information
+          throughout the transaction lifecycle.
+        </p>
+        <div class="cards">
+          <div class="card animated">
+            <div class="card-icon">📅</div>
+            <div class="card-title">Established</div>
+            <div class="card-text">Originally released in December 2004 as a unified standard consolidating separate programs from card brands.</div>
+          </div>
+          <div class="card animated">
+            <div class="card-icon">🏛️</div>
+            <div class="card-title">Governing Body</div>
+            <div class="card-text">PCI Security Standards Council — an independent body with global participation across industries.</div>
+          </div>
+          <div class="card animated">
+            <div class="card-icon">📋</div>
+            <div class="card-title">Current Version</div>
+            <div class="card-text">PCI DSS v4.0, released March 2022. Fully mandatory since March 2025, replacing v3.2.1.</div>
+          </div>
+          <div class="card animated">
+            <div class="card-icon">🌍</div>
+            <div class="card-title">Global Reach</div>
+            <div class="card-text">Applies to any organization worldwide that handles, stores, or transmits payment card data.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- 02. OBJECTIVE -->
+  <div class="section" id="objective">
+    <div class="section-header" onclick="toggle(this)">
+      <span class="section-num">02</span>
+      <div class="section-icon">🎯</div>
+      <div class="section-title">Objective</div>
+      <div class="section-arrow">›</div>
+    </div>
+    <div class="section-body">
+      <div class="section-inner">
+        <p class="lead">
+          The core mission of PCI DSS is to protect cardholder data and reduce payment card fraud globally through
+          the implementation of consistent security controls.
+        </p>
+        <div class="req-list">
+          <div class="req-item animated">
+            <span class="req-num">REQ 01–02</span>
+            <div class="req-text">
+              <strong>Build and Maintain a Secure Network</strong>
+              Install and configure firewalls; avoid vendor-supplied defaults for passwords and security parameters.
+            </div>
+          </div>
+          <div class="req-item animated">
+            <span class="req-num">REQ 03–04</span>
+            <div class="req-text">
+              <strong>Protect Cardholder Data</strong>
+              Protect stored cardholder data; encrypt transmission across open, public networks.
+            </div>
+          </div>
+          <div class="req-item animated">
+            <span class="req-num">REQ 05–06</span>
+            <div class="req-text">
+              <strong>Maintain a Vulnerability Management Program</strong>
+              Protect against malware; develop and maintain secure systems and software.
+            </div>
+          </div>
+          <div class="req-item animated">
+            <span class="req-num">REQ 07–09</span>
+            <div class="req-text">
+              <strong>Implement Strong Access Control Measures</strong>
+              Restrict access by business need; identify and authenticate access; restrict physical access.
+            </div>
+          </div>
+          <div class="req-item animated">
+            <span class="req-num">REQ 10–11</span>
+            <div class="req-text">
+              <strong>Monitor and Test Networks Regularly</strong>
+              Log and monitor all access to network resources; test security systems and processes.
+            </div>
+          </div>
+          <div class="req-item animated">
+            <span class="req-num">REQ 12</span>
+            <div class="req-text">
+              <strong>Maintain an Information Security Policy</strong>
+              Support information security for all personnel through a formal organizational policy.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- 03. SCOPE -->
+  <div class="section" id="scope">
+    <div class="section-header" onclick="toggle(this)">
+      <span class="section-num">03</span>
+      <div class="section-icon">🗺️</div>
+      <div class="section-title">Area of Application</div>
+      <div class="section-arrow">›</div>
+    </div>
+    <div class="section-body">
+      <div class="section-inner">
+        <p class="lead">
+          PCI DSS applies to any entity that stores, processes, or transmits cardholder data (CHD) or
+          sensitive authentication data (SAD), regardless of size or transaction volume.
+        </p>
+ 
+        <div class="scope-tabs" id="scope-tabs">
+          <button class="scope-tab active" onclick="switchTab(0)">Who it applies to</button>
+          <button class="scope-tab" onclick="switchTab(1)">Data in Scope</button>
+          <button class="scope-tab" onclick="switchTab(2)">Compliance Levels</button>
+        </div>
+ 
+        <div class="scope-panel active" id="tab-0">
+          <div class="cards">
+            <div class="card animated">
+              <div class="card-icon">🏦</div>
+              <div class="card-title">Merchants</div>
+              <div class="card-text">Any business that accepts payment cards — from global retailers to small online stores.</div>
+            </div>
+            <div class="card animated">
+              <div class="card-icon">⚙️</div>
+              <div class="card-title">Service Providers</div>
+              <div class="card-text">Third parties that store, process, or transmit CHD on behalf of merchants or issuers.</div>
+            </div>
+            <div class="card animated">
+              <div class="card-icon">💳</div>
+              <div class="card-title">Acquirers & Issuers</div>
+              <div class="card-text">Banks and financial institutions that process card transactions for merchants or issue cards to consumers.</div>
+            </div>
+            <div class="card animated">
+              <div class="card-icon">🔌</div>
+              <div class="card-title">Technology Vendors</div>
+              <div class="card-text">Providers of payment terminals, POS systems, gateways, and other payment infrastructure.</div>
+            </div>
+          </div>
+        </div>
+ 
+        <div class="scope-panel" id="tab-1">
+          <div class="req-list">
+            <div class="req-item animated">
+              <span class="req-num">CHD</span>
+              <div class="req-text"><strong>Primary Account Number (PAN)</strong> — The 16-digit card number. Highest protection requirement.</div>
+            </div>
+            <div class="req-item animated">
+              <span class="req-num">CHD</span>
+              <div class="req-text"><strong>Cardholder Name, Expiry Date, Service Code</strong> — Supplemental cardholder data that must be protected alongside PAN.</div>
+            </div>
+            <div class="req-item animated">
+              <span class="req-num">SAD</span>
+              <div class="req-text"><strong>Full Track Data, CVV/CVC, PIN</strong> — Sensitive authentication data. Must NEVER be stored post-authorization.</div>
+            </div>
+          </div>
+        </div>
+ 
+        <div class="scope-panel" id="tab-2">
+          <div class="req-list">
+            <div class="req-item animated">
+              <span class="req-num">LVL 1</span>
+              <div class="req-text"><strong>Over 6 million transactions/year</strong> — Requires annual on-site audit by Qualified Security Assessor (QSA).</div>
+            </div>
+            <div class="req-item animated">
+              <span class="req-num">LVL 2</span>
+              <div class="req-text"><strong>1M – 6M transactions/year</strong> — Annual Self-Assessment Questionnaire (SAQ) + quarterly network scan.</div>
+            </div>
+            <div class="req-item animated">
+              <span class="req-num">LVL 3</span>
+              <div class="req-text"><strong>20K – 1M e-commerce transactions/year</strong> — Annual SAQ + quarterly network scan required.</div>
+            </div>
+            <div class="req-item animated">
+              <span class="req-num">LVL 4</span>
+              <div class="req-text"><strong>Under 20K e-commerce or up to 1M other transactions</strong> — Annual SAQ recommended; quarterly scan may apply.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- 04. ADVANTAGES -->
+  <div class="section" id="advantages">
+    <div class="section-header" onclick="toggle(this)">
+      <span class="section-num">04</span>
+      <div class="section-icon">⭐</div>
+      <div class="section-title">Advantages</div>
+      <div class="section-arrow">›</div>
+    </div>
+    <div class="section-body">
+      <div class="section-inner">
+        <p class="lead">
+          PCI DSS compliance delivers tangible benefits that extend well beyond regulatory adherence,
+          strengthening an organization's overall security posture and business reputation.
+        </p>
+        <div class="adv-grid">
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Reduced Risk of Breaches</strong>
+              Systematic controls minimize the likelihood of cardholder data being compromised.
+            </div>
+          </div>
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Customer Trust</strong>
+              Demonstrates commitment to protecting sensitive data, increasing consumer confidence.
+            </div>
+          </div>
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Avoided Penalties</strong>
+              Non-compliance fines from card brands can reach $100,000 per month. Compliance prevents these.
+            </div>
+          </div>
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Improved Security Culture</strong>
+              Compliance programs instill security-first thinking across all departments and teams.
+            </div>
+          </div>
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Aligned with Other Standards</strong>
+              PCI DSS overlaps significantly with ISO 27001, NIST, and GDPR, reducing redundant efforts.
+            </div>
+          </div>
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Competitive Advantage</strong>
+              Certified organizations can attract partners and clients who require secure payment handling.
+            </div>
+          </div>
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Incident Response Readiness</strong>
+              Compliance mandates logging, monitoring, and IR plans, enabling faster breach detection and response.
+            </div>
+          </div>
+          <div class="adv-item animated">
+            <div class="adv-check">✓</div>
+            <div class="adv-label">
+              <strong>Vendor Risk Management</strong>
+              Requires third-party oversight, reducing supply chain vulnerabilities in the payment ecosystem.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- 05. REAL EXAMPLE -->
+  <div class="section" id="example">
+    <div class="section-header" onclick="toggle(this)">
+      <span class="section-num">05</span>
+      <div class="section-icon">🔍</div>
+      <div class="section-title">Real Example</div>
+      <div class="section-arrow">›</div>
+    </div>
+    <div class="section-body">
+      <div class="section-inner">
+        <p class="lead">
+          The 2013 Target Corporation data breach is one of the most cited examples of what happens
+          when PCI DSS controls fail — and how compliance could have prevented catastrophic loss.
+        </p>
+ 
+        <div class="case-box">
+          <div class="case-header">
+            <span class="case-badge">Breach Case Study</span>
+            <span class="case-company">Target Corporation — 2013</span>
+          </div>
+          <div class="case-body">
+            <div class="case-stat-row">
+              <div class="case-stat">
+                <span class="case-stat-val">40M</span>
+                <span class="case-stat-label">Cards Compromised</span>
+              </div>
+              <div class="case-stat">
+                <span class="case-stat-val">70M</span>
+                <span class="case-stat-label">Records Stolen</span>
+              </div>
+              <div class="case-stat">
+                <span class="case-stat-val">$292M</span>
+                <span class="case-stat-label">Total Cost</span>
+              </div>
+              <div class="case-stat">
+                <span class="case-stat-val">20+</span>
+                <span class="case-stat-label">Days Undetected</span>
+              </div>
+            </div>
+ 
+            <div class="timeline">
+              <div class="tl-item animated">
+                <div class="tl-date">Nov 2013 — Entry Point</div>
+                <div class="tl-title">Third-Party HVAC Vendor Compromised</div>
+                <div class="tl-text">Attackers stole credentials from Fazio Mechanical, a Target HVAC contractor with network access. PCI DSS Req. 8 (access control) and Req. 12 (vendor management) were inadequately enforced.</div>
+              </div>
+              <div class="tl-item animated">
+                <div class="tl-date">Nov 15–28 — Lateral Movement</div>
+                <div class="tl-title">Malware Deployed on POS Systems</div>
+                <div class="tl-text">RAM-scraping malware (BlackPOS) was installed on point-of-sale terminals. Failure to segment the network (Req. 1) allowed attackers to pivot from the vendor portal to payment systems.</div>
+              </div>
+              <div class="tl-item animated">
+                <div class="tl-date">Dec 2013 — Exfiltration</div>
+                <div class="tl-title">Cardholder Data Extracted</div>
+                <div class="tl-text">Track 1 and Track 2 data (including CVV) was captured in-memory and exfiltrated. Monitoring tools detected anomalies but alerts were ignored — a Req. 10 failure.</div>
+              </div>
+              <div class="tl-item animated">
+                <div class="tl-date">Dec 19, 2013 — Discovery</div>
+                <div class="tl-title">Breach Disclosed Publicly</div>
+                <div class="tl-text">The breach was discovered by the U.S. Department of Justice, not by Target's internal security team — highlighting the critical importance of proactive monitoring under PCI DSS.</div>
+              </div>
+            </div>
+ 
+            <p style="margin-top:24px; padding:16px 20px; border:1px solid var(--border); border-radius:3px; background:var(--surface);">
+              <strong style="color:var(--accent); display:block; margin-bottom:8px;">Key PCI DSS Lessons</strong>
+              Proper network segmentation, strict third-party access management, and active monitoring of security alerts would have significantly limited the breach's scope — or prevented it entirely.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- 06. TOOLS -->
+  <div class="section" id="tools">
+    <div class="section-header" onclick="toggle(this)">
+      <span class="section-num">06</span>
+      <div class="section-icon">🛠️</div>
+      <div class="section-title">Related Tools</div>
+      <div class="section-arrow">›</div>
+    </div>
+    <div class="section-body">
+      <div class="section-inner">
+        <p class="lead">
+          A wide ecosystem of specialized tools helps organizations achieve and maintain PCI DSS compliance
+          across scanning, monitoring, encryption, and assessment functions.
+        </p>
+        <div class="tools-grid">
+          <div class="tool-card animated">
+            <div class="tool-name">Nessus / Tenable.io</div>
+            <div class="tool-category">Vulnerability Scanning</div>
+            <div class="tool-desc">Industry-standard vulnerability scanner used to identify weaknesses in network infrastructure. Essential for Req. 11.3 internal vulnerability scans.</div>
+          </div>
+          <div class="tool-card animated">
+            <div class="tool-name">Qualys PCI</div>
+            <div class="tool-category">ASV Scanning + Compliance</div>
+            <div class="tool-desc">Approved Scanning Vendor (ASV) platform for quarterly external vulnerability scans required for all PCI-scoped systems.</div>
+          </div>
+          <div class="tool-card animated">
+            <div class="tool-name">Splunk / IBM QRadar</div>
+            <div class="tool-category">SIEM — Log Management</div>
+            <div class="tool-desc">Security Information and Event Management platforms for centralized logging and real-time alerting. Directly satisfies Req. 10.</div>
+          </div>
+          <div class="tool-card animated">
+            <div class="tool-name">HashiCorp Vault</div>
+            <div class="tool-category">Secrets & Key Management</div>
+            <div class="tool-desc">Manages encryption keys, certificates, and secrets. Supports PCI DSS Req. 3 (protect stored data) with secure key lifecycle management.</div>
+          </div>
+          <div class="tool-card animated">
+            <div class="tool-name">CyberArk PAM</div>
+            <div class="tool-category">Privileged Access Management</div>
+            <div class="tool-desc">Controls and monitors privileged account usage. Directly addresses PCI DSS Req. 7 (restrict access) and Req. 8 (identify and authenticate).</div>
+          </div>
+          <div class="tool-card animated">
+            <div class="tool-name">TrustKeeper / ControlScan</div>
+            <div class="tool-category">SAQ & Compliance Tracking</div>
+            <div class="tool-desc">Platforms designed specifically for PCI DSS Self-Assessment Questionnaire completion, evidence tracking, and remediation management.</div>
+          </div>
+          <div class="tool-card animated">
+            <div class="tool-name">Imperva WAF</div>
+            <div class="tool-category">Web Application Firewall</div>
+            <div class="tool-desc">Protects web applications against OWASP Top 10 threats. Addresses PCI DSS Req. 6.4 on securing public-facing web applications.</div>
+          </div>
+          <div class="tool-card animated">
+            <div class="tool-name">Verizon DBIR + PCI Report</div>
+            <div class="tool-category">Threat Intelligence</div>
+            <div class="tool-desc">Annual data breach investigation report providing empirical data on attack patterns targeting payment environments. Essential for risk assessment.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+</main>
+ 
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">PCI DSS</div>
+  <div>Payment Card Industry Data Security Standard — Educational Reference</div>
+  <div>PCI SSC © 2025</div>
+</footer>
+ 
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring   = document.getElementById('cursor-ring');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function animateCursor() {
+    cursor.style.left = mx + 'px';
+    cursor.style.top  = my + 'px';
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top  = ry + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+ 
+  // Accordion toggle
+  function toggle(header) {
+    const section = header.parentElement;
+    const isOpen  = section.classList.contains('open');
+    document.querySelectorAll('.section.open').forEach(s => s.classList.remove('open'));
+    if (!isOpen) section.classList.add('open');
+  }
+ 
+  // Scope tabs
+  function switchTab(idx) {
+    document.querySelectorAll('.scope-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+    document.querySelectorAll('.scope-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  }
+ 
+  // Intersection observer for animated items
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.querySelectorAll('.animated').forEach(el => {
+          el.style.animationPlayState = 'running';
+        });
+      }
+    });
+  }, { threshold: 0.1 });
+ 
+  document.querySelectorAll('.section').forEach(s => {
+    s.querySelectorAll('.animated').forEach(el => {
+      el.style.animationPlayState = 'paused';
+    });
+    obs.observe(s);
+  });
+ 
+  // Open first section by default
+  document.querySelector('.section').classList.add('open');
+</script>
+</body>
+</html>
